@@ -1,3 +1,4 @@
+# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
 """Twin-as-scaffold study.
 
     python run.py --seeds 10 --out results      # main study + ablations

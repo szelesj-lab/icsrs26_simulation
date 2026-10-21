@@ -1,3 +1,4 @@
+# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
 """The 'real' plant: stochastic, with a coupling the twin does not know.
 
 Production asks for air. The compressor's waste heat warms its own room; hot

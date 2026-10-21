@@ -1,3 +1,4 @@
+# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
 """Figures from results/runs.json.
 
     python figures.py results      -> results/fig2_base.pdf (paper, Fig. 2) and results/overview.png

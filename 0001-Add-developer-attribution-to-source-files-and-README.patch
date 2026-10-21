@@ -1,0 +1,153 @@
+From 33fc8d06b1de39610d2533be80a71c3599da22b9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C3=B3zsef=20Szeles?= <szeles.jozsef@mik.uni-pannon.hu>
+Date: Wed, 21 Oct 2026 20:17:16 +0200
+Subject: [PATCH] Add developer attribution to source files and README
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Add a header line naming the developer (József Szeles, Department of
+System Engineering and Department of Electrical Engineering, University
+of Pannonia) to every Python file and to the README. No functional
+change.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_016St24ybTXf5AGEot9itvP1
+---
+ README.md            | 3 +++
+ figures.py           | 1 +
+ make_numbers.py      | 1 +
+ paired.py            | 1 +
+ run.py               | 1 +
+ scaffold/__init__.py | 1 +
+ scaffold/agent.py    | 1 +
+ scaffold/config.py   | 1 +
+ scaffold/learner.py  | 1 +
+ scaffold/plant.py    | 1 +
+ scaffold/risk.py     | 1 +
+ scaffold/simulate.py | 1 +
+ scaffold/twin.py     | 1 +
+ 13 files changed, 15 insertions(+)
+
+diff --git a/README.md b/README.md
+index f0c9ab7..bc8c581 100644
+--- a/README.md
++++ b/README.md
+@@ -5,6 +5,9 @@ Simulation package for the paper
+ > J. Szeles, T. Ruppert, E. Zio, *Residual-Driven Interaction Learning for System-Level
+ > Risk-Informed Decision Support in Industrial Energy Systems*, ICSRS 2026.
+ 
++**Developer:** József Szeles, Department of System Engineering and Department of Electrical Engineering,
++University of Pannonia
++
+ It reproduces every number, table and figure of the paper's case study: a pneumatic production
+ line whose compressor heats its own room, a digital twin (DT) that misses three couplings, and an
+ RL agent that asks the twin only when it is unsure about the system-level risk of its decision.
+diff --git a/figures.py b/figures.py
+index 6bbddd7..3ae2b09 100644
+--- a/figures.py
++++ b/figures.py
+@@ -1,3 +1,4 @@
++# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
+ """Figures from results/runs.json.
+ 
+     python figures.py results      -> results/fig2_base.pdf (paper, Fig. 2) and results/overview.png
+diff --git a/make_numbers.py b/make_numbers.py
+index df7423f..f556f2e 100644
+--- a/make_numbers.py
++++ b/make_numbers.py
+@@ -1,3 +1,4 @@
++# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
+ """Write every number used in the paper as a LaTeX macro (numbers.tex), straight from runs.json.
+ 
+     python make_numbers.py results/runs.json ../paper/numbers.tex
+diff --git a/paired.py b/paired.py
+index 43af28c..900cb6c 100644
+--- a/paired.py
++++ b/paired.py
+@@ -1,3 +1,4 @@
++# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
+ """Paired differences between approaches (same seed = same weather and demand).
+ python paired.py results/runs.json > results/paired.md"""
+ import json, sys
+diff --git a/run.py b/run.py
+index e05e7de..87c2b41 100644
+--- a/run.py
++++ b/run.py
+@@ -1,3 +1,4 @@
++# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
+ """Twin-as-scaffold study.
+ 
+     python run.py --seeds 10 --out results      # main study + ablations
+diff --git a/scaffold/__init__.py b/scaffold/__init__.py
+index e69de29..a7804dc 100644
+--- a/scaffold/__init__.py
++++ b/scaffold/__init__.py
+@@ -0,0 +1 @@
++# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
+diff --git a/scaffold/agent.py b/scaffold/agent.py
+index ad02bbb..aaa40dc 100644
+--- a/scaffold/agent.py
++++ b/scaffold/agent.py
+@@ -1,3 +1,4 @@
++# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
+ """The digital twin as a scaffold.
+ 
+ One RL agent learns three things:
+diff --git a/scaffold/config.py b/scaffold/config.py
+index 785ad87..d804941 100644
+--- a/scaffold/config.py
++++ b/scaffold/config.py
+@@ -1,3 +1,4 @@
++# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
+ """All parameters in one place. Every number here is hypothetical, chosen to
+ reproduce the qualitative story of the paper's use case, not measured on the
+ FESTO line."""
+diff --git a/scaffold/learner.py b/scaffold/learner.py
+index 8ba2a0f..74756cf 100644
+--- a/scaffold/learner.py
++++ b/scaffold/learner.py
+@@ -1,3 +1,4 @@
++# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
+ """Residual learner: what does the twin miss?
+ 
+ Residual r = measured value - twin prediction. A Bayesian linear model
+diff --git a/scaffold/plant.py b/scaffold/plant.py
+index 7dd7dab..45e98ca 100644
+--- a/scaffold/plant.py
++++ b/scaffold/plant.py
+@@ -1,3 +1,4 @@
++# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
+ """The 'real' plant: stochastic, with a coupling the twin does not know.
+ 
+ Production asks for air. The compressor's waste heat warms its own room; hot
+diff --git a/scaffold/risk.py b/scaffold/risk.py
+index f11cb47..50f450a 100644
+--- a/scaffold/risk.py
++++ b/scaffold/risk.py
+@@ -1,3 +1,4 @@
++# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
+ """Two-level system risk over all risk types of the paper.
+ 
+ Risk types (events in the next hour):
+diff --git a/scaffold/simulate.py b/scaffold/simulate.py
+index cf1ba45..9a32a34 100644
+--- a/scaffold/simulate.py
++++ b/scaffold/simulate.py
+@@ -1,3 +1,4 @@
++# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
+ """One season for one approach."""
+ import time
+ 
+diff --git a/scaffold/twin.py b/scaffold/twin.py
+index 76ef194..4826177 100644
+--- a/scaffold/twin.py
++++ b/scaffold/twin.py
+@@ -1,3 +1,4 @@
++# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
+ """The digital twin (simulation platform).
+ 
+ It models demand, the compressor and room heat, but assumes constant air
+-- 
+2.43.0
+

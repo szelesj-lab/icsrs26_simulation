@@ -1,3 +1,4 @@
+# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
 """Paired differences between approaches (same seed = same weather and demand).
 python paired.py results/runs.json > results/paired.md"""
 import json, sys

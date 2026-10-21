@@ -1,3 +1,4 @@
+# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
 """Write every number used in the paper as a LaTeX macro (numbers.tex), straight from runs.json.
 
     python make_numbers.py results/runs.json ../paper/numbers.tex

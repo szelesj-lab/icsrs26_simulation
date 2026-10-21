@@ -1,3 +1,4 @@
+# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
 """All parameters in one place. Every number here is hypothetical, chosen to
 reproduce the qualitative story of the paper's use case, not measured on the
 FESTO line."""

@@ -1,3 +1,4 @@
+# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
 """Two-level system risk over all risk types of the paper.
 
 Risk types (events in the next hour):

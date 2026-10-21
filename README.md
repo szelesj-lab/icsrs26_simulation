@@ -5,6 +5,9 @@ Simulation package for the paper
 > J. Szeles, T. Ruppert, E. Zio, *Residual-Driven Interaction Learning for System-Level
 > Risk-Informed Decision Support in Industrial Energy Systems*, ICSRS 2026.
 
+**Developer:** József Szeles, Department of System Engineering and Department of Electrical Engineering,
+University of Pannonia
+
 It reproduces every number, table and figure of the paper's case study: a pneumatic production
 line whose compressor heats its own room, a digital twin (DT) that misses three couplings, and an
 RL agent that asks the twin only when it is unsure about the system-level risk of its decision.

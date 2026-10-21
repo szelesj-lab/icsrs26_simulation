@@ -1,3 +1,4 @@
+# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
 """The digital twin (simulation platform).
 
 It models demand, the compressor and room heat, but assumes constant air

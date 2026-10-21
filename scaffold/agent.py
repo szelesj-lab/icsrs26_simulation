@@ -1,3 +1,4 @@
+# Developer: József Szeles, Department of System Engineering and Department of Electrical Engineering, University of Pannonia
 """The digital twin as a scaffold.
 
 One RL agent learns three things:
