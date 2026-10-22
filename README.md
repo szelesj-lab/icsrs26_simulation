@@ -123,6 +123,7 @@ One decision hour runs as follows:
 | `figures.py` | Fig. 2 of the paper (`fig2_base.pdf/.png`) and `overview.png` |
 | `make_numbers.py` | writes every number used in the paper as a LaTeX macro |
 | `results/` | results of the paper version |
+| `results_v2/` | results of the previous paper draft (single A6 drift rule), kept for reference |
 | `results_v1/` | results of the earlier package version (clogging from day 0, no attribution gate), kept for reference |
 
 ---
@@ -270,7 +271,7 @@ ablations vs. this work.
 2. `numbers.tex` holds every number of the paper as a macro (e.g. `\BaseScafV` = violations of this work in the base scenario, mean ± standard error). Compare them with the paper, or `\input` the file.
 3. Copy `results/fig2_base.pdf` into the paper's `figures/` folder.
 
-CPU seconds depend on the machine; only the ratios between approaches (about 76–79 % saving) are
+CPU seconds depend on the machine; only the ratios between approaches (about 74–79 % saving) are
 comparable.
 
 ---
@@ -320,14 +321,25 @@ Base scenario, 10 seasons, mean ± standard error (`results/summary.md`):
 |---|---|---|---|---|
 | RL alone | 44.9 ± 4.1 | 22.0 ± 0.9 | 0 | 97.9 ± 0.2 |
 | Fixed margins | 10.1 ± 3.3 | 0.4 ± 0.2 | 0 | 90.3 ± 0.1 |
-| Twin on every decision | 13.0 ± 3.4 | 2.4 ± 0.5 | 1920 | 97.7 ± 0.1 |
-| This work | 12.1 ± 3.3 | 1.7 ± 0.4 | 439 ± 22 | 95.7 ± 0.2 |
-| This work, twin retired | 11.6 ± 3.3 | 1.6 ± 0.4 | 322 ± 13 | 95.0 ± 0.3 |
+| Twin on every decision | 12.5 ± 3.4 | 2.0 ± 0.5 | 1920 | 97.4 ± 0.0 |
+| This work | 11.8 ± 3.3 | 1.6 ± 0.3 | 460 ± 20 | 95.5 ± 0.2 |
+| This work, twin retired | 11.0 ± 3.3 | 1.1 ± 0.3 | 336 ± 12 | 95.0 ± 0.3 |
 | Ideal reference | 17.9 ± 3.0 | 6.8 ± 0.6 | 0 | 100 |
+| Ablation: no interaction learning | 35.7 ± 3.5 | 23.7 ± 1.3 | 174 ± 5 | 98.2 ± 0.2 |
 
 About 86 % of the violation hours of this work fall in hours in which no level was safe (mostly the
-thermal limit on the hottest days). The learned slopes converge to −0.98, 0.31 and −1.51 (true:
-−1.00, 0.32, −1.50).
+thermal limit on the hottest days). The learned slopes converge to −0.97, 0.31 and −1.51 (true:
+−1.00, 0.32, −1.50). Without interaction learning the twin stays biased in warm states and the agent
+has 22 more controllable violation hours per season: the savings depend on the residual learner.
+
+A1 and A6 together (air delivery): with the twin on every decision, A6 moved the compressor wear into the
+drift offset in 10 of 10 seasons (−4.0 Nl/min at season end; true −5.9) while the slope stayed at −0.97
+and A1 still held at season end in 9 of 10 seasons. With the twin asked only when unsure, A6 saw the
+wear in 5 of 10 seasons (around day 110). With the other coupling shape, A6 flagged model-form misfit in
+all 10 seasons (first around day 33) and drift in 8 of 10 (1.1 detections per season).
+
+Previous results (single drift rule, no separate drift offset, no `scaffold_nolearn`) are kept in
+`results_v2/`; the first package version in `results_v1/`.
 
 ---
 
@@ -336,8 +348,9 @@ thermal limit on the hottest days). The learned slopes converge to −0.98, 0.31
 - Simplified plant, hypothetical parameters, one decision variable without a shutdown option.
 - Tabular one-step policy; energy cost logged but not priced.
 - Residuals are learned only in hours the twin was asked; after retirement, plant changes are seen only through outcomes.
-- A6 detects the slow wear in less than half of the seasons and reads a misspecified coupling shape (hinge) as drift.
-- The risk critic underestimates the risk near the limit on decisions taken alone (about 4× in the base scenario), although the observed rate stays far below ε.
+- A6 sees the slow wear in only half of the seasons when the twin is asked rarely; with a misspecified coupling shape it widens the uncertainty, but still reads part of the misfit as drift, and the linear model cannot represent the hinge (slope −0.37 ± 0.46 over seasons).
+- The risk critic underestimates the risk on decisions taken alone (about 3× in the base scenario), although the observed rate stays far below ε.
+- No local hard limiter is simulated; the fallback to the lowest level does not guarantee that all hard limits hold.
 
 ---
 
