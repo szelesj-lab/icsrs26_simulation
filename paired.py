@@ -8,7 +8,8 @@ R = json.load(open(sys.argv[1] if len(sys.argv) > 1 else "results/runs.json"))
 g = {(r["scenario"], r["approach"], r["seed"]): r for r in R}
 seeds = sorted({r["seed"] for r in R})
 PAIRS = [("scaffold", "rl_twin_every"), ("scaffold", "rl_alone"), ("scaffold", "fixed_margin"),
-         ("scaffold_retire", "rl_twin_every"), ("scaffold_boole", "scaffold"), ("scaffold_noattr", "scaffold")]
+         ("scaffold_retire", "rl_twin_every"), ("scaffold_boole", "scaffold"), ("scaffold_noattr", "scaffold"),
+         ("scaffold_nolearn", "scaffold")]
 KEYS = [("any_hard", "Δ hard violations, h"), ("viol_controllable", "Δ controllable violations, h"),
         ("twin", "Δ twin requests"), ("output_pct", "Δ output, pp of ideal"), ("cpu_total", "Δ CPU per season, s")]
 print("| Scenario | Comparison | " + " | ".join(n for _, n in KEYS) + " |")

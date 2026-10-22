@@ -83,12 +83,14 @@ class Config:
 
     # --- residual learner ---
     attribution: bool = True              # False: ablation, every residual is learned (no A1/A2 gate, no A5, no A6)
+    interaction_learning: bool = True     # False: ablation, the twin is used uncorrected (g_hat = 0)
     prior_sd_intercept: float = 3.0
     prior_sd_slope: float = 0.7
     forgetting: float = 0.9995            # per accepted residual
     a5_threshold: float = 10.0            # Nl/min disagreement measured vs pressure-implied
     a6_window: int = 60                   # residuals per window for the drift check
-    a6_threshold: float = 3.0             # z-score of the mean one-step error that counts as drift
+    a6_threshold: float = 3.0             # z-score of the mean one-step error that counts as a change
+    a6_state_t: float = 3.0               # t-value: error depends on the coupling feature (misfit) and not on time
 
     prior_sd_slope_power: float = 0.4     # kW per degC at full request
     prior_sd_slope_chiller: float = 1.5   # kW per degC ambient

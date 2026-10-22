@@ -71,7 +71,7 @@ python run.py --seeds 10 --out results --only scaffold,scaffold_retire
 | Admissible system-level risk | ε = 0.01 per hour (probability that at least one hard limit is violated) |
 | Couplings missing in the twin | air delivery vs. room temperature, compressor power vs. room temperature, chiller capacity vs. ambient temperature |
 | Seasons per combination | 10 (seeds 0–9) |
-| Total | 3 scenarios × 6 approaches × 10 seeds + 2 ablations × 2 scenarios × 10 seeds = 220 seasons |
+| Total | 3 scenarios × 6 approaches × 10 seeds + 3 ablations × 2 scenarios × 10 seeds = 240 seasons |
 
 One decision hour runs as follows:
 
@@ -84,6 +84,26 @@ One decision hour runs as follows:
 4. A twin request evaluates all nine levels by Monte Carlo (twin + learned residual corrections). The agent learns risk and values from it and executes the highest level, up to its proposal, whose upper bound from the twin is below ε (otherwise the lowest level).
 5. The plant runs one hour.
 6. The agent learns: values from the real reward; residuals (if the twin was asked) or the calibration test (if it acted alone).
+
+### Risk limit and what happens to a risky proposal
+
+- **The limit.** ε = 0.01 per hour applies to the *system-level* risk: the probability that at least one
+  hard limit is violated in the coming hour (union of the five events). It is checked against an
+  **upper bound**: the agent's own upper bound (90 % level) when it acts alone, and the twin's upper
+  bound (95 % quantile over the epistemic samples) after a request. Over a season, ε corresponds to a
+  budget of about 19 violation hours (1920 × 0.01).
+- **A proposal whose upper bound exceeds ε is never executed unchanged.** It is replaced by
+  - case C: the highest *lower* level whose own upper bound is below ε;
+  - case B, or C with no such level: the twin's highest admissible level up to the proposal;
+  - if no level is admissible, or the twin is retired and the agent knows no admissible level: the
+    **lowest production level** (200 Nl/min).
+- **The policy learns from overrides.** The executed level gets the real reward; the overridden proposal
+  gets the same reward minus 5, so the policy learns not to propose it again.
+- **The fallback is not a guarantee.** There is no shutdown option, and on the hottest days even the
+  lowest level breaks the thermal limit of the compressor room ("no safe level" hours, counted
+  separately as non-controllable violations).
+- **No hard limiter is simulated.** The paper's architecture keeps a local hard limiter below the
+  agent; the simulation does not model it, so every hard-limit event is counted as it occurs.
 
 ---
 
@@ -134,15 +154,39 @@ One Bayesian linear model per coupling, residual = measured − twin prediction:
 | Compressor power | (room temperature − 20 °C) × request / 270 | 0.32 kW per °C |
 | Chiller capacity | max(0, ambient − 25 °C) | −1.50 kW per °C |
 
-Learners only receive data in hours in which the twin was asked. Attribution conditions:
+Learners only receive data in hours in which the twin was asked. Each learner has two parts: the
+coupling model (intercept th0 and slope th1, Bayesian) and a separate **drift offset d**, which only A6
+changes. The twin is corrected by (th0 + d) + th1·x.
 
-- **A1** – the intercept is near zero (the twin is right where the coupling does not act);
-- **A2** – the slope posterior excludes zero (|mean| > 3 sd);
-- **A5** – delivery residuals are rejected when the meter and the pressure-implied value differ by more than 10 Nl/min;
-- **A6** – a biased one-step error over 60 residuals is read as drift: the old offset is forgotten.
+Attribution conditions:
 
-A pattern corrects the twin only once A1 and A2 hold. Before that, the twin is corrected with zero mean
-and a widened variance. A3 and A4 are not exercised (the couplings act within the one-hour step).
+- **A1** – local adequacy: the intercept th0 is near zero (|th0| < 3 sd + 1), i.e. the twin is right
+  where the coupling does not act. Because drift is held in d, not in th0, A1 keeps this meaning after
+  wear or clogging.
+- **A2** – dependence: the slope posterior excludes zero (|mean| > 3 sd).
+- **A5** – sensor plausibility: delivery residuals are rejected when the meter and the pressure-implied
+  value differ by more than 10 Nl/min (the biased sensor of days 70–74).
+- **A6** – time invariance. When the mean one-step error of the last 60 residuals is biased, A6 regresses
+  these errors on time and on the coupling feature x:
+  - **no dependence on x** (a uniform shift, or a trend in time): **drift**. The bias is moved into the
+    drift offset d (and its variance), outside the coupling model. Wear and clogging end up here;
+  - **dependence on x** (t-value above 3, with or without time): **model-form misfit**. Nothing is moved
+    into d; the coupling's covariance is widened by the size of the misfit. When state and time cannot
+    be separated, this is the conservative choice: more uncertainty instead of a wrong offset.
+
+**How A1 and A6 work together.** Residuals mix three things: the missing coupling (depends on the state),
+slow wear or clogging (depends on time, the same at every state) and noise. The Bayesian fit averages
+the noise out, A2 accepts only a slope clearly different from zero, and A5 removes sensor faults. A6 takes
+time-dependent shifts out of the coupling model into d, so the slope is not bent by the wear and A1 still
+tests the twin's local model. A6 does not move state-dependent misfit into d, so a coupling of the wrong
+shape is not mistaken for drift.
+
+A pattern corrects the twin as an interaction only once A1 and A2 hold (A2 is re-checked afterwards).
+Before that, the twin is corrected with zero mean and a widened variance (plus the drift offset). A3 and
+A4 are not exercised: the couplings act within the one-hour step and depend on the state only.
+
+`Config(attribution=False)` switches A1, A2, A5 and A6 off (every residual is learned as an interaction);
+`Config(interaction_learning=False)` keeps the twin uncorrected (ĝ = 0).
 
 ### Risk (`risk.py`)
 
@@ -170,6 +214,7 @@ matrix of common random numbers for every call. Aggregations: `joint` (union, de
 | `oracle` | ideal reference: knows the true plant, not the future noise; highest level whose true risk is below ε (= 100 % output) |
 | `scaffold_boole` | ablation: Boole bound instead of the union (base, episodes) |
 | `scaffold_noattr` | ablation: no attribution conditions (base, episodes) |
+| `scaffold_nolearn` | ablation: no interaction learning, the twin is used uncorrected (base, episodes) |
 
 | Key | Scenario |
 |---|---|
@@ -200,7 +245,7 @@ One record per season (scenario × approach × seed):
 | `surprises` | calibration-test alarms |
 | `cpu_total`, `cpu_twin`, `n_sim` | CPU seconds in decisions, of which in twin simulations; candidate levels simulated |
 | `daily_q`, `daily_v`, `daily_v_no_safe` | daily twin requests, violation hours, violation hours without a safe level |
-| `attribution` | per coupling: learned slope and sd, intercept, day identified, A5 rejection days, A6 drift days (this work, ablations, twin on every decision) |
+| `attribution` | per coupling: learned slope and sd, intercept th0, drift offset d, day identified, A1 at season end, A5 rejection days, A6 drift days and model-form misfit days (this work, its ablations, retired twin, twin on every decision) |
 
 ### `results/summary.md`
 
@@ -209,8 +254,8 @@ Three tables: all KPIs (mean ± standard error), hours per event type, attributi
 ### `results/paired.md`
 
 Paired differences between approaches on the same seeds (mean ± standard error): this work vs. twin
-on every decision, RL alone and fixed margins; retired twin vs. twin on every decision; both ablations
-vs. this work.
+on every decision, RL alone and fixed margins; retired twin vs. twin on every decision; the three
+ablations vs. this work.
 
 ### Figures
 
@@ -242,7 +287,7 @@ e.g. `Config(scenario="episodes", aggregation="boole")`.
 | Power and cooling | `p_line_per_nl`, `p_comp_per_nl`, `comp_eff_coef`, `peak_limit`, `chiller_cap`, `chiller_derate`, `t_room_max` |
 | Faults | `fault_days`, `fault_bias` |
 | Risk | `risk_limit` (ε), `range_q`, `n_inner`, `n_epistemic`, `aggregation` |
-| Learners | `attribution`, priors, `forgetting`, `a5_threshold`, `a6_window`, `a6_threshold` |
+| Learners | `attribution`, `interaction_learning`, priors, `forgetting`, `a5_threshold`, `a6_window`, `a6_threshold`, `a6_state_t` |
 | Policy | `temp_bins`, `alpha`, `eps_start`, `eps_end`, penalties |
 | Baselines | `fixed_margin`, `fixed_power_margin`, `fixed_cool_margin`, `fixed_thermal_margin` |
 | Scenarios | `scenario`, `hinge_T`, `hinge_slope`, `episode_start_day`, `episode_rate`, `episode_days`, `episode_drop` |

@@ -16,11 +16,13 @@ from scaffold.simulate import simulate, APPROACHES
 SCEN = ["base", "episodes", "hinge"]
 # ablations of "this work": (approach used, config overrides, scenarios)
 ABLATIONS = {"scaffold_boole": ("scaffold", dict(aggregation="boole"), ["base", "episodes"]),
-             "scaffold_noattr": ("scaffold", dict(attribution=False), ["base", "episodes"])}
+             "scaffold_noattr": ("scaffold", dict(attribution=False), ["base", "episodes"]),
+             "scaffold_nolearn": ("scaffold", dict(interaction_learning=False), ["base", "episodes"])}
 LABEL = {"fixed_margin": "Fixed safety margins", "rl_alone": "RL alone (no twin)", "rl_twin_every": "RL + twin on every decision",
          "scaffold": "This work: RL asks the twin when unsure", "scaffold_retire": "This work, twin retired after day 60",
          "oracle": "Ideal reference (knows the plant)",
-         "scaffold_boole": "Ablation: Boole bound instead of union", "scaffold_noattr": "Ablation: no attribution checks"}
+         "scaffold_boole": "Ablation: Boole bound instead of union", "scaffold_noattr": "Ablation: no attribution checks",
+         "scaffold_nolearn": "Ablation: no interaction learning (twin uncorrected)"}
 EVENTS = ("shortage", "lost", "cooling_short", "peak", "thermal")
 
 
@@ -55,7 +57,7 @@ def job(a):
                cpu_total=float(ag.cpu["decide"]), cpu_twin=float(ag.cpu_twin), n_sim=int(ag.n_sim),
                daily_q=dq.tolist(), daily_v=dv.tolist(), daily_v_no_safe=dvn.tolist())
     row["viol_controllable"] = row["any_hard"] - row["viol_no_safe"]
-    if app in ("scaffold", "rl_twin_every"):
+    if app in ("scaffold", "rl_twin_every", "scaffold_retire"):
         row["attribution"] = ag.attribution_summary()
     return row
 
@@ -119,12 +121,13 @@ def write_summary(rows, out):
             cells = [f"{np.mean([r['events'][k] for r in rs]):.1f} ({np.mean([r['events_controllable'][k] for r in rs]):.1f})" for k in EVENTS]
             L.append(f"| {sc} | {LABEL[a]} | " + " | ".join(cells) + f" | {_m(rs, 'no_safe_hours')[0]:.1f} |")
     L += ["", "Attribution (this work, mean over seeds): learned slope ± sd at season end (true value), "
-          "first day identified, residuals rejected by A5 (of which on fault days 70–74), drift detections (A6) and first detection day:", "",
-          "| Scenario | Approach | Coupling | Slope (true) | Identified on day | A5 rejections (fault days) | A6 drift detections | first drift day |",
-          "|---|---|---|---|---|---|---|---|"]
+          "first day identified, residuals rejected by A5 (of which on fault days 70–74), A6 drift detections and first day, "
+          "A6 model-form detections, drift offset at season end, A1 at season end:", "",
+          "| Scenario | Approach | Coupling | Slope (true) | Identified on day | A5 rejections (fault days) | A6 drift detections | first drift day | A6 misfit detections | drift offset | A1 at end |",
+          "|---|---|---|---|---|---|---|---|---|---|---|"]
     true = {"air": {"base": -1.0, "episodes": -1.0, "hinge": "hinge"}, "power": 0.12 * 270 * 0.01, "chiller": -1.5}
     for sc in SCEN:
-        for a in ["scaffold", "scaffold_noattr", "rl_twin_every"]:
+        for a in ["scaffold", "scaffold_noattr", "scaffold_nolearn", "rl_twin_every"]:
             rs = [r for r in rows if r["scenario"] == sc and r["approach"] == a and "attribution" in r]
             if not rs:
                 continue
@@ -139,7 +142,9 @@ def write_summary(rows, out):
                 d1 = [x["drift_days"][0] for x in A if x["drift_days"]]
                 L.append(f"| {sc} | {LABEL[a]} | {k} | {np.mean([x['slope'] for x in A]):.2f} ± {np.mean([x['slope_sd'] for x in A]):.2f} ({tv}) | "
                          f"{(np.mean(idd) if idd else float('nan')):.1f} ({len(idd)}/{len(A)}) | {np.mean(rej):.1f} ({np.mean(rej_f):.1f}) | "
-                         f"{np.mean(dr):.1f} | {(np.mean(d1) if d1 else float('nan')):.0f} |")
+                         f"{np.mean(dr):.1f} | {(np.mean(d1) if d1 else float('nan')):.0f} | "
+                         f"{np.mean([len(x.get('misfit_days', [])) for x in A]):.1f} | {np.mean([x.get('drift', 0.0) for x in A]):.1f} | "
+                         f"{sum(x.get('a1_end', False) for x in A)}/{len(A)} |")
     open(os.path.join(out, "summary.md"), "w").write("\n".join(L) + "\n")
     print("\n".join(L))
 
