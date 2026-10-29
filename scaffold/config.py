@@ -74,6 +74,7 @@ class Config:
     # --- risk model and shield ---
     risk_limit: float = 0.01              # admissible system-level risk per hour (P of any hard limit violated)
     range_q: tuple = (0.05, 0.95)         # epistemic quantiles that define the range
+    critic_z: float = 1.645               # agent's range: mean -/+ z sd in logit space (same nominal level as range_q)
     sd_state_twin: float = 1.5            # degC: hour-average room temp from the twin (= half the disturbance)
 
     # --- risk aggregation across the hard limits (used by the twin simulation) ---

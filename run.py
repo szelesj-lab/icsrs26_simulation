@@ -22,14 +22,15 @@ LABEL = {"fixed_margin": "Fixed safety margins", "rl_alone": "RL alone (no twin)
          "scaffold": "This work: RL asks the twin when unsure", "scaffold_retire": "This work, twin retired after day 60",
          "oracle": "Ideal reference (knows the plant)",
          "scaffold_boole": "Ablation: Boole bound instead of union", "scaffold_noattr": "Ablation: no attribution checks",
-         "scaffold_nolearn": "Ablation: no interaction learning (twin uncorrected)"}
+         "scaffold_nolearn": "Ablation: no interaction learning (twin uncorrected)",
+         "filter_cautious": "Data-driven filter, no twin (cautious)", "filter_explore": "Data-driven filter, no twin (explores)"}
 EVENTS = ("shortage", "lost", "cooling_short", "peak", "thermal")
 
 
 def job(a):
-    sc, name, seed = a
+    sc, name, seed = a[:3]
     app, over, _ = ABLATIONS.get(name, (name, {}, None))
-    cfg = Config(scenario=sc, **over)
+    cfg = Config(scenario=sc, **over, **{k: v for k, v in (a[3] if len(a) > 3 else {}).items() if not k.startswith("_")})
     log, ag = simulate(app, cfg, seed)
     days = cfg.days
     dq, dv, dvn = np.zeros(days), np.zeros(days), np.zeros(days)
@@ -53,6 +54,10 @@ def job(a):
                obs_alone=int(sum(r["any_hard"] for r in alone)),
                obs_alone_controllable=int(sum(r["any_hard"] and not r["no_safe"] for r in alone)),
                viol_asked=int(sum(r["any_hard"] for r in asked)),
+               fallback_hours=int(sum(r["fallback"] for r in log)),
+               fallback_viol=int(sum(r["fallback"] and r["any_hard"] for r in log)),
+               fallback_no_safe=int(sum(r["fallback"] and r["no_safe"] for r in log)),
+               fallback_viol_controllable=int(sum(r["fallback"] and r["any_hard"] and not r["no_safe"] for r in log)),
                surprises=len(ag.critic.surprises) if app != "oracle" else 0,
                cpu_total=float(ag.cpu["decide"]), cpu_twin=float(ag.cpu_twin), n_sim=int(ag.n_sim),
                daily_q=dq.tolist(), daily_v=dv.tolist(), daily_v_no_safe=dvn.tolist())

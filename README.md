@@ -360,3 +360,21 @@ If you use this package, please cite the paper above.
 
 The simulation environment was developed with the assistance of Claude (Claude Opus 5.5, Anthropic);
 the authors reviewed it and take responsibility for its content.
+
+
+## Additional runs for the ICSRS 2026 review (branch `icsrs-revision`)
+
+`main` holds the submitted paper's results and is unchanged. This branch adds:
+
+- `scaffold/datafilter.py`: a data-driven safety filter **without any twin** (Bayesian linear model of each limit's margin, fitted to plant data only; union risk; same rule A/B/C). Two variants: `filter_cautious` (case B treated like case C) and `filter_explore` (case B: the proposal is tried on the plant).
+- Fallback logging: hours in which no level was known to be safe and the lowest level was taken, with violations and controllable violations in them.
+- `critic_z` in `Config` (agent's range level; default 1.645, results unchanged).
+- `review.py`: filters in all scenarios, re-run of this work and DT on every decision (identical to `main`), coupling-strength sweep (kappa = 0, 0.5, 1.5, 2 scales all three missing couplings), and alpha = 0.01 (z = 2.326).
+- `review_summary.py results_review` writes `results_review/summary.md`.
+
+```
+OMP_NUM_THREADS=1 python review.py --out results_review
+python review_summary.py results_review
+```
+
+CPU times in `results_review` were measured with single-threaded BLAS and are not comparable with `results/`; the paper's CPU column comes from `results/`.

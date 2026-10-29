@@ -18,6 +18,7 @@ from scipy.stats import poisson
 
 from .learner import ResidualLearner
 from .risk import event_samples, aggregate
+from .datafilter import DataFilter
 
 LOGIT_CLIP = 1e-5
 
@@ -101,10 +102,12 @@ class ScaffoldAgent:
         self.Q = np.full((len(cfg.temp_bins) + 1, len(cfg.levels)), 20.0)
         self.n = 0
         self.res = {k: ResidualLearner(cfg, k) for k in ("air", "power", "chiller")}
-        self.critic = RiskCritic(cfg)
+        self.critic = RiskCritic(cfg, z=cfg.critic_z)
         self.asks = []                       # (day, reason)
         self.cpu_twin = 0.0                  # CPU seconds spent in twin simulations
         self.n_sim = 0                       # candidate actions simulated by the twin
+        self.fallback = False                # last decision: no level known to be safe -> lowest level
+        self.dfilter = DataFilter(cfg) if mode.startswith("filter") else None
 
     # ---------- policy ----------
     def _s(self, t_room):
@@ -148,6 +151,9 @@ class ScaffoldAgent:
         Fallback when no level is known to be safe: the lowest production level."""
         c = self.c
         prop = self.propose(t_room, total)
+        self.fallback = False
+        if self.mode.startswith("filter"):
+            return self._decide_filter(prop, t_room, t_amb)
         self.critic.forget()
         lim = c.risk_limit
         lo, mid, hi = self.critic.bounds(t_room, t_amb, c.levels[prop])
@@ -170,6 +176,7 @@ class ScaffoldAgent:
         if not twin_available:                                 # twin retired: be cautious with what it knows
             sure = [i for i in range(prop + 1) if self.critic.bounds(t_room, t_amb, c.levels[i])[2] < lim]
             i = max(sure) if sure else 0
+            self.fallback = not sure
             return prop, i, None, self.critic.bounds(t_room, t_amb, c.levels[i])[1]
 
         sim = self.simulate(t_room, t_amb, hour)
@@ -178,7 +185,23 @@ class ScaffoldAgent:
         for i, (_, _, _, r) in enumerate(sim):                                   # learn the policy from the twin
             self._q(t_room, i, r)
         ok = [i for i in range(prop + 1) if sim[i][2] < lim]
+        self.fallback = not ok
         return prop, (max(ok) if ok else 0), ask, None
+
+    def _decide_filter(self, prop, t_room, t_amb):
+        """Baseline without twin: the same rule A/B/C on a risk range learned from plant data only.
+        Case B cannot ask a twin. 'filter_cautious' treats B like C: the highest level below the
+        proposal whose upper bound is below the limit, else the lowest level. 'filter_explore' tries
+        the proposal on the plant instead (the plant is its only source of information)."""
+        lim = self.c.risk_limit
+        lo, mid, hi = self.dfilter.bounds(t_room, t_amb)
+        if hi[prop] < lim:
+            return prop, prop, None, None                          # A
+        if lo[prop] <= lim and self.mode == "filter_explore":
+            return prop, prop, None, None                          # B, explore on the plant
+        ok = [i for i in range(prop) if hi[i] < lim]               # C (and B for the cautious filter)
+        self.fallback = not ok
+        return prop, (max(ok) if ok else 0), None, None
 
     # ---------- learning from the plant ----------
     def learn(self, rec, t_room, prop, idx, asked, p_alone):
@@ -187,6 +210,8 @@ class ScaffoldAgent:
         reward = (c.reward_per_nm3 * rec["air_nm3"] - c.shortage_penalty * rec["shortage"] - c.peak_penalty * rec["peak"]
                   - c.cool_penalty * rec["cooling_short"] - c.thermal_penalty * rec["thermal"])
         self._q(t_room, idx, reward); self.n += 1
+        if self.dfilter is not None:
+            self.dfilter.learn(rec)
         if idx != prop:
             self._q(t_room, prop, reward - 5.0)
         if asked:   # the twin predicted this hour -> residuals

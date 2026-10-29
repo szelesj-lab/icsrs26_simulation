@@ -11,6 +11,7 @@ from .twin import Twin
 
 HARD_RECORD = ("shortage", "lost", "cooling_short", "peak", "thermal")
 APPROACHES = ["fixed_margin", "rl_alone", "rl_twin_every", "scaffold", "scaffold_retire", "oracle"]
+FILTERS = ["filter_cautious", "filter_explore"]          # data-driven safety filters without a twin (review)
 
 
 def _true_risk(cfg, plant, twin, t_room, t_amb, hour, i):
@@ -33,7 +34,8 @@ def simulate(approach, cfg, seed):
     plant = Plant(cfg, np.random.default_rng(seed), seed)
     rng = np.random.default_rng(seed + 10_000)
     twin = Twin(cfg)
-    mode = {"rl_alone": "alone", "fixed_margin": "alone", "rl_twin_every": "every"}.get(approach, "scaffold")
+    mode = {"rl_alone": "alone", "fixed_margin": "alone", "rl_twin_every": "every",
+            "filter_cautious": "filter_cautious", "filter_explore": "filter_explore"}.get(approach, "scaffold")
     agent = ScaffoldAgent(cfg, rng, twin, mode)
     retire_day = cfg.extra.get("retire_day", 60) if approach == "scaffold_retire" else 10 ** 9
     h0, h1 = cfg.work_hours
@@ -70,7 +72,8 @@ def simulate(approach, cfg, seed):
         cpu["decide"] += time.process_time() - t0
         rec.update(approach=approach, seed=seed, executed=cfg.levels[idx], asked=asked or "",
                    twin_request=bool(asked), alone_p=p_alone if p_alone is not None else np.nan,
-                   any_hard=any(rec[k] for k in HARD_RECORD), no_safe=bool(no_safe))
+                   any_hard=any(rec[k] for k in HARD_RECORD), no_safe=bool(no_safe),
+                   fallback=bool(agent.fallback) if approach not in ("oracle", "fixed_margin") else False)
         log.append(rec)
     agent.cpu = cpu
     return log, agent
