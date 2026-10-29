@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+mc_run.log
+results_mc/runs_partial.jsonl
+review_run.log

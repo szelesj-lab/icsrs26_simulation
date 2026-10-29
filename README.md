@@ -120,6 +120,7 @@ One decision hour runs as follows:
 | `scaffold/simulate.py` | one season for one approach; fixed-margin rule; ideal reference; "no safe level" diagnostic |
 | `run.py` | runs all seasons in parallel, writes `runs.json` and `summary.md` |
 | `paired.py` | paired differences over seeds |
+| `mc_convergence.py` | Monte Carlo convergence study (n_inner 1000–10 000) |
 | `figures.py` | Fig. 2 of the paper (`fig2_base.pdf/.png`) and `overview.png` |
 | `make_numbers.py` | writes every number used in the paper as a LaTeX macro |
 | `results/` | results of the paper version |
@@ -343,6 +344,33 @@ Previous results (single drift rule, no separate drift offset, no `scaffold_nole
 
 ---
 
+## Monte Carlo convergence (`mc_convergence.py`)
+
+Every risk estimate uses `n_inner` aleatory samples (default 1000). At ε = 0.01 one estimate has a standard
+error of 0.0031 at n = 1000 and 0.0010 at n = 10 000. `mc_convergence.py` re-runs the base scenario with
+n = 1000, 2000, 3000, 5000, 7000 and 10 000 (twin on every decision, this work, ideal reference; 10 seeds)
+and writes `results_mc/summary.md` (about 1.5 h on 2 cores; it resumes from `runs_partial.jsonl`).
+
+| n | This work: violations, h | twin requests | output, % | Twin on every decision: violations, h | Ideal reference: violations, h |
+|---|---|---|---|---|---|
+| 1000 | 11.8 ± 3.3 | 460 ± 20 | 95.5 | 12.5 ± 3.4 | 17.9 ± 3.0 |
+| 5000 | 12.4 ± 3.4 | 386 ± 9 | 95.4 | 13.6 ± 3.5 | 21.5 ± 3.0 |
+| 10000 | 12.6 ± 3.5 | 378 ± 13 | 95.3 | 13.8 ± 3.4 | 21.9 ± 2.9 |
+
+- The KPIs stop moving from n ≈ 5000: every paired change against n = 10 000 is within about one standard
+  error there. At n = 1000 the approaches that evaluate risk at every decision have significantly fewer
+  violations (ideal reference −4.0 ± 0.5 h, twin on every decision −1.3 ± 0.3 h): the risk engine uses one
+  fixed sample matrix (common random numbers), so its Monte Carlo error is a fixed bias per state, not noise
+  that averages out over the season.
+- The comparison of this work with the twin on every decision holds at every n: comparable violations
+  (−1.2 ± 0.9 h at n = 10 000), 80 % fewer twin requests and 82 % less computation, 2.1 points less output.
+- With more samples the agent asks the twin less (460 → 378 requests), because the twin's risk labels are less
+  noisy and the agent's risk model fits them better. It still underestimates its risk when acting alone
+  (0.42 predicted vs 2.6 observed violations per season at n = 10 000).
+- Recommendation for further studies: n = 5000.
+
+---
+
 ## Limitations
 
 - Simplified plant, hypothetical parameters, one decision variable without a shutdown option.
@@ -378,3 +406,4 @@ python review_summary.py results_review
 ```
 
 CPU times in `results_review` were measured with single-threaded BLAS and are not comparable with `results/`; the paper's CPU column comes from `results/`.
+- `mc_convergence.py` and `results_mc/` (also on branch `mc-convergence`): the Monte Carlo convergence check cited in the revised paper (n_inner = 1000 to 10 000, base scenario; see the section above).
